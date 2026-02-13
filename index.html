@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SmartBus System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center">
+
+<!-- AUTH SECTION -->
+<div id="auth-section" class="bg-white text-black p-8 rounded-xl w-96">
+
+<h2 class="text-2xl font-bold text-center mb-4">SmartBus System</h2>
+
+<div class="flex mb-4">
+<button onclick="showRegister()" class="w-1/2 bg-green-500 text-white p-2 rounded-l">Register</button>
+<button onclick="showLogin()" class="w-1/2 bg-blue-500 text-white p-2 rounded-r">Login</button>
+</div>
+
+<!-- REGISTER -->
+<div id="register-form">
+<input id="name" type="text" placeholder="Full Name" class="w-full p-2 mb-2 border rounded">
+<input id="reg-username" type="text" placeholder="Username" class="w-full p-2 mb-2 border rounded">
+<input id="reg-password" type="password" placeholder="Create Password" class="w-full p-2 mb-2 border rounded">
+<input id="confirm-password" type="password" placeholder="Confirm Password" class="w-full p-2 mb-2 border rounded">
+
+<button onclick="register()" class="w-full bg-green-600 text-white p-2 rounded">
+Create Account
+</button>
+</div>
+
+<!-- LOGIN -->
+<div id="login-form" class="hidden">
+<input id="login-username" type="text" placeholder="Username" class="w-full p-2 mb-2 border rounded">
+<input id="login-password" type="password" placeholder="Password" class="w-full p-2 mb-2 border rounded">
+
+<button onclick="login()" class="w-full bg-blue-600 text-white p-2 rounded">
+Login
+</button>
+</div>
+
+<p id="msg" class="text-center text-sm mt-3 text-red-600"></p>
+</div>
+
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="hidden w-full p-10">
+
+<div class="flex justify-between mb-6">
+<h1 class="text-3xl font-bold">SmartBus Dashboard</h1>
+<button onclick="logout()" class="bg-red-500 px-4 py-2 rounded">Logout</button>
+</div>
+
+<div class="grid md:grid-cols-3 gap-6 mb-10">
+
+<div class="bg-white text-black p-6 rounded-xl text-center">
+<h2>Total Buses</h2>
+<p id="total" class="text-3xl font-bold text-green-600"></p>
+</div>
+
+<div class="bg-white text-black p-6 rounded-xl text-center">
+<h2>On Time</h2>
+<p id="onTime" class="text-3xl font-bold text-blue-600"></p>
+</div>
+
+<div class="bg-white text-black p-6 rounded-xl text-center">
+<h2>Delayed</h2>
+<p id="delayed" class="text-3xl font-bold text-orange-500"></p>
+</div>
+
+</div>
+
+<div class="bg-white text-black p-6 rounded-xl">
+<h2 class="text-xl font-bold mb-4">Live Tracking</h2>
+<div id="busList"></div>
+</div>
+
+</div>
+
+
+<script>
+
+function showRegister(){
+document.getElementById("register-form").classList.remove("hidden");
+document.getElementById("login-form").classList.add("hidden");
+document.getElementById("msg").innerText="";
+}
+
+function showLogin(){
+document.getElementById("login-form").classList.remove("hidden");
+document.getElementById("register-form").classList.add("hidden");
+document.getElementById("msg").innerText="";
+}
+
+async function register(){
+const name=document.getElementById("name").value;
+const username=document.getElementById("reg-username").value;
+const password=document.getElementById("reg-password").value;
+const confirmPassword=document.getElementById("confirm-password").value;
+
+const res=await fetch("/register",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({name,username,password,confirmPassword})
+});
+
+const data=await res.json();
+document.getElementById("msg").innerText=data.message;
+}
+
+async function login(){
+const username=document.getElementById("login-username").value;
+const password=document.getElementById("login-password").value;
+
+const res=await fetch("/login",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({username,password})
+});
+
+const data=await res.json();
+
+if(data.success){
+document.getElementById("auth-section").classList.add("hidden");
+document.getElementById("dashboard").classList.remove("hidden");
+loadDashboard();
+}else{
+document.getElementById("msg").innerText=data.message;
+}
+}
+
+async function loadDashboard(){
+const res=await fetch("/dashboard-data");
+const data=await res.json();
+
+const buses=data.buses;
+
+let total=buses.length;
+let onTime=buses.filter(b=>b.status==="on-time").length;
+let delayed=buses.filter(b=>b.status==="delayed").length;
+
+document.getElementById("total").innerText=total;
+document.getElementById("onTime").innerText=onTime;
+document.getElementById("delayed").innerText=delayed;
+
+document.getElementById("busList").innerHTML=
+buses.map(b=>`
+<div class="border-b py-2">
+<strong>${b.id}</strong> (${b.route})<br>
+Location: ${b.location}<br>
+ETA: ${b.eta}<br>
+Status:
+<span class="${b.status==='on-time'?'text-green-600':'text-orange-500'} font-bold">
+${b.status.toUpperCase()}
+</span>
+</div>
+`).join("");
+}
+
+async function logout(){
+await fetch("/logout");
+document.getElementById("dashboard").classList.add("hidden");
+document.getElementById("auth-section").classList.remove("hidden");
+}
+
+</script>
+
+</body>
+</html>
